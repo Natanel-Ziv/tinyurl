@@ -23,6 +23,6 @@
 > [ ] Get statistics
 
 [ ] URLs:
-> [ ] GET /{hashed} redirect to actual
-> [ ] Update statistics
+> [ ] GET /{hashed} redirect to actual  
+> [ ] Update statistics     
 > [ ] Timeout URLs
