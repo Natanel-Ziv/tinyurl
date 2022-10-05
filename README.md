@@ -1,8 +1,8 @@
 # Tiny url
 
 ## Todos:
-[X] Create simple API server with GET /ping (will user for heath check)     
-[ ] Fix usage of context    
+[ ] Create simple API server with GET /ping (will user for heath check)     
+[X] Fix usage of context    
 [ ] MongoDB:    
 > [ ] URL collection:   
 >> * User ID
