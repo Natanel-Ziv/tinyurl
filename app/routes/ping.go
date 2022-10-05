@@ -14,5 +14,6 @@ func Ping(srv webserver.Server) http.HandlerFunc {
 		if _, err := w.Write([]byte("Pong")); err != nil {
 			log.Fatal().Msg("Failed to send pong!")
 		}
+		log.Debug().Msg("Returned Pong")
 	}
 }

@@ -1,23 +1,24 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"os"
+	"tinyurl/app/utils"
 	"tinyurl/app/webserver"
 
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
+	appContext := utils.AppContext
+
+
 	configs := webserver.Config{
 		Port: 1338,
 	}
 
-	ctx := context.Background()
-
-	srv, err := webserver.New(configs, ctx)
+	srv, err := webserver.New(configs, appContext)
 
 	if err != nil {
 		log.Fatal().Msgf("Failed to start server: %+v", err)
@@ -32,3 +33,4 @@ func main() {
 		os.Exit(1)
 	}
 }
+
