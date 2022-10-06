@@ -9,6 +9,7 @@ import (
 	"tinyurl/server/db"
 	"tinyurl/server/routes"
 
+	"github.com/dn365/gin-zerolog"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 )
@@ -34,7 +35,10 @@ func NewServer(parentCtx context.Context, cfg *config.Config) (*Server, error) {
 		return nil, err
 	}
 
-	router := gin.Default()
+
+	// router := gin.Default()
+	router := gin.New()
+	router.Use(ginzerolog.Logger("server"))
 	routes.AddRoutes(router)
 
 	server := &http.Server{
