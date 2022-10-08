@@ -10,12 +10,13 @@ import (
 )
 
 type MongoDB struct {
-	ctx         context.Context
-	mongoConn   *options.ClientOptions
-	mongoClient *mongo.Client
+	ctx           context.Context
+	mongoConn     *options.ClientOptions
+	mongoClient   *mongo.Client
+	mongoDatabase *mongo.Database
 }
 
-func NewMongoDB(ctx context.Context, uri string) (*MongoDB, error) {
+func NewMongoDB(ctx context.Context, uri string, dbName string) (*MongoDB, error) {
 	mongoConn := options.Client().ApplyURI(uri)
 	mongoClient, err := mongo.Connect(ctx, mongoConn)
 	if err != nil {
@@ -32,12 +33,17 @@ func NewMongoDB(ctx context.Context, uri string) (*MongoDB, error) {
 	log.Debug().Msg("Mongo connected!")
 
 	return &MongoDB{
-		ctx:         ctx,
-		mongoConn:   mongoConn,
-		mongoClient: mongoClient,
+		ctx:           ctx,
+		mongoConn:     mongoConn,
+		mongoClient:   mongoClient,
+		mongoDatabase: mongoClient.Database(dbName),
 	}, nil
 }
 
 func (mogonDB *MongoDB) Close() error {
 	return mogonDB.mongoClient.Disconnect(mogonDB.ctx)
+}
+
+func (mongoDB *MongoDB) GetCollection(name string) *mongo.Collection {
+	return mongoDB.mongoDatabase.Collection(name)
 }

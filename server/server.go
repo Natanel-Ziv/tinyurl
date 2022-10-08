@@ -6,12 +6,17 @@ import (
 	"fmt"
 	"net/http"
 	"tinyurl/server/config"
+	"tinyurl/server/controllers"
 	"tinyurl/server/db"
 	"tinyurl/server/routes"
+	"tinyurl/server/services"
+	"tinyurl/server/utils"
 
-	"github.com/dn365/gin-zerolog"
+	ginzerolog "github.com/dn365/gin-zerolog"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type Server struct {
@@ -20,12 +25,19 @@ type Server struct {
 	cancelCtx   context.CancelFunc
 	mongoClient *db.MongoDB
 	redisClient *db.RedisDB
+
+	usersCollection *mongo.Collection
+	userService     services.UserService
+	UserController  *controllers.UserController
+
+	authService    services.AuthService
+	AuthController *controllers.AuthController
 }
 
 func NewServer(parentCtx context.Context, cfg *config.Config) (*Server, error) {
 	ctx, cancelCtx := context.WithCancel(parentCtx)
 
-	mongoClient, err := db.NewMongoDB(ctx, cfg.MongoDBUri)
+	mongoClient, err := db.NewMongoDB(ctx, cfg.MongoDBUri, cfg.MongoDBName)
 	if err != nil {
 		return nil, err
 	}
@@ -35,11 +47,35 @@ func NewServer(parentCtx context.Context, cfg *config.Config) (*Server, error) {
 		return nil, err
 	}
 
+	usersCollection := mongoClient.GetCollection("users")
+	userService := services.NewUserServiceImpl(ctx, usersCollection)
+	authService := services.NewAuthServiceImpl(ctx, usersCollection)
 
-	// router := gin.Default()
+	authCfg := &controllers.AuthConfig{
+		AccessTokenPrivateKey:  cfg.AccessTokenPrivateKey,
+		AccessTokenPublicKey:   cfg.AccessTokenPublicKey,
+		RefreshTokenPrivateKey: cfg.RefreshTokenPrivateKey,
+		RefreshTokenPublicKey:  cfg.RefreshTokenPublicKey,
+		AccessTokenExpiresIn:   cfg.AccessTokenExpiresIn,
+		RefreshTokenExpiresIn:  cfg.RefreshTokenExpiresIn,
+		AccessTokenMaxAge:      cfg.AccessTokenMaxAge,
+		RefreshTokenMaxAge:     cfg.RefreshTokenMaxAge,
+	}
+
+	authController := controllers.NewAuthController(authCfg, authService, userService)
+	userController := controllers.NewUserController(userService)
+
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowOrigins = []string{"http://localhost:8000", "http://localhost:3000"}
+	corsConfig.AllowCredentials = true
+
+	utils.InitValidators()
+
 	router := gin.New()
-	router.Use(ginzerolog.Logger("server"))
-	routes.AddRoutes(router)
+	router.Use(ginzerolog.Logger("server"), cors.New(corsConfig))
+
+	routes := routes.NewRoutes(authController, userService, userController)
+	routes.InitRoutes(router)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%s", cfg.ServerPort),
