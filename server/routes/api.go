@@ -6,8 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func apiRoutes(superRoute *gin.Engine) {
-	apiRouter := superRoute.Group("/api")
+func apiRoutes(rg *gin.RouterGroup) {
+	apiRouter := rg.Group("/api")
 	{
 		apiRouter.GET("/ping", controllers.Ping)
 	}
