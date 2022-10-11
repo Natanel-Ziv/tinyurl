@@ -15,8 +15,8 @@ import (
 )
 
 type AuthService interface {
-	SignUpUser(*models.SignUpInput) (*models.DBResponse, error)
-	SignInUser(*models.SignInInput) (*models.DBResponse, error)
+	SignUpUser(*models.SignUpInput) (*models.UserDBResponse, error)
+	SignInUser(*models.SignInInput) (*models.UserDBResponse, error)
 }
 
 type AuthServiceImpl struct {
@@ -29,13 +29,13 @@ func NewAuthServiceImpl(ctx context.Context, collection *mongo.Collection) AuthS
 }
 
 // SignInUser implements AuthService
-func (as *AuthServiceImpl) SignInUser(user *models.SignInInput) (*models.DBResponse, error) {
+func (as *AuthServiceImpl) SignInUser(user *models.SignInInput) (*models.UserDBResponse, error) {
 	// TODO: use me!
 	return nil, nil
 }
 
 // SignUpUser implements AuthService
-func (as *AuthServiceImpl) SignUpUser(user *models.SignUpInput) (*models.DBResponse, error) {
+func (as *AuthServiceImpl) SignUpUser(user *models.SignUpInput) (*models.UserDBResponse, error) {
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = user.CreatedAt
 	user.Email = strings.ToLower(user.Email)
@@ -56,7 +56,6 @@ func (as *AuthServiceImpl) SignUpUser(user *models.SignUpInput) (*models.DBRespo
 		return nil, err
 	}
 
-
 	index := mongo.IndexModel{Keys: bson.M{"email": 1}, Options: options.Index().SetUnique(true)}
 
 	_, err = as.collection.Indexes().CreateOne(as.ctx, index)
@@ -64,7 +63,7 @@ func (as *AuthServiceImpl) SignUpUser(user *models.SignUpInput) (*models.DBRespo
 		return nil, fmt.Errorf("could not create index for email %w", err)
 	}
 
-	var newUser *models.DBResponse
+	var newUser *models.UserDBResponse
 	query := bson.M{"_id": res.InsertedID}
 
 	err = as.collection.FindOne(as.ctx, query).Decode(&newUser)
@@ -75,4 +74,3 @@ func (as *AuthServiceImpl) SignUpUser(user *models.SignUpInput) (*models.DBRespo
 	return newUser, nil
 
 }
-
