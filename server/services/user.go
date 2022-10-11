@@ -13,8 +13,8 @@ import (
 )
 
 type UserService interface {
-	FindUserByID(string) (*models.DBResponse, error)
-	FindUserByEmail(string) (*models.DBResponse, error)
+	FindUserByID(string) (*models.UserDBResponse, error)
+	FindUserByEmail(string) (*models.UserDBResponse, error)
 }
 
 type UserServiceImpl struct {
@@ -30,19 +30,19 @@ func NewUserServiceImpl(ctx context.Context, collection *mongo.Collection) UserS
 }
 
 // FindUserByID implements UserService
-func (us *UserServiceImpl) FindUserByID(id string) (*models.DBResponse, error) {
+func (us *UserServiceImpl) FindUserByID(id string) (*models.UserDBResponse, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get objectId from hex: %w", err)
 	}
 
-	var user *models.DBResponse
-	
+	var user *models.UserDBResponse
+
 	query := bson.M{"_id": oid}
 	err = us.collection.FindOne(us.ctx, query).Decode(&user)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return &models.DBResponse{}, err
+			return &models.UserDBResponse{}, err
 		}
 		return nil, fmt.Errorf("failed to find id: %w", err)
 	}
@@ -52,18 +52,17 @@ func (us *UserServiceImpl) FindUserByID(id string) (*models.DBResponse, error) {
 }
 
 // FindUserByEmail implements UserService
-func (us *UserServiceImpl) FindUserByEmail(email string) (*models.DBResponse, error) {
-	var user *models.DBResponse
-	
+func (us *UserServiceImpl) FindUserByEmail(email string) (*models.UserDBResponse, error) {
+	var user *models.UserDBResponse
+
 	query := bson.M{"email": strings.ToLower(email)}
 	err := us.collection.FindOne(us.ctx, query).Decode(&user)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return &models.DBResponse{}, err
+			return &models.UserDBResponse{}, err
 		}
 		return nil, fmt.Errorf("failed to find id: %w", err)
 	}
 
 	return user, nil
 }
-

@@ -17,12 +17,12 @@ func NewUserController(userService services.UserService) *UserController {
 }
 
 func (uc *UserController) GetMe(ctx *gin.Context) {
-	currentUser := ctx.MustGet("currentUser").(*models.DBResponse)
-	
+	currentUser := ctx.MustGet("currentUser").(*models.UserDBResponse)
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"status": "success",
 		"data": gin.H{
-			"user": models.FilteredResponse(currentUser),
+			"user": models.UserFilteredResponse(currentUser),
 		},
 	})
 }

@@ -16,7 +16,6 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type Server struct {
@@ -25,13 +24,6 @@ type Server struct {
 	cancelCtx   context.CancelFunc
 	mongoClient *db.MongoDB
 	redisClient *db.RedisDB
-
-	usersCollection *mongo.Collection
-	userService     services.UserService
-	UserController  *controllers.UserController
-
-	authService    services.AuthService
-	AuthController *controllers.AuthController
 }
 
 func NewServer(parentCtx context.Context, cfg *config.Config) (*Server, error) {
@@ -51,6 +43,9 @@ func NewServer(parentCtx context.Context, cfg *config.Config) (*Server, error) {
 	userService := services.NewUserServiceImpl(ctx, usersCollection)
 	authService := services.NewAuthServiceImpl(ctx, usersCollection)
 
+	urlsCollection := mongoClient.GetCollection("urls")
+	urlService := services.NewURLServiceImpl(ctx, urlsCollection)
+
 	authCfg := &controllers.AuthConfig{
 		AccessTokenPrivateKey:  cfg.AccessTokenPrivateKey,
 		AccessTokenPublicKey:   cfg.AccessTokenPublicKey,
@@ -64,6 +59,7 @@ func NewServer(parentCtx context.Context, cfg *config.Config) (*Server, error) {
 
 	authController := controllers.NewAuthController(authCfg, authService, userService)
 	userController := controllers.NewUserController(userService)
+	urlController := controllers.NewURLController(urlService)
 
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowOrigins = []string{"http://localhost:8000", "http://localhost:3000"}
@@ -74,7 +70,7 @@ func NewServer(parentCtx context.Context, cfg *config.Config) (*Server, error) {
 	router := gin.New()
 	router.Use(ginzerolog.Logger("server"), cors.New(corsConfig))
 
-	routes := routes.NewRoutes(authController, userService, userController)
+	routes := routes.NewRoutes(authController, userService, userController, urlService, urlController)
 	routes.InitRoutes(router)
 
 	server := &http.Server{
