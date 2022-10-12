@@ -87,7 +87,7 @@ func NewServer(parentCtx context.Context, cfg *config.Config) (*Server, error) {
 	}, nil
 }
 
-func (server *Server) Start() error {
+func (server *Server)Start() error {
 	err := server.server.ListenAndServe()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err

@@ -11,6 +11,7 @@ import (
 	"tinyurl/server/utils"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -18,12 +19,14 @@ import (
 type URLService interface {
 	RegisterURL(*models.RegisterURLInput) (*models.URLDBResponse, error)
 	GetURLFromShort(string) (*models.URLDBResponse, error)
+	UpdateURLVisited(primitive.ObjectID) error
 }
 
 type URLServiceImpl struct {
 	collection *mongo.Collection
 	ctx        context.Context
 }
+
 
 func NewURLServiceImpl(ctx context.Context, collection *mongo.Collection) URLService {
 	return &URLServiceImpl{
@@ -35,7 +38,7 @@ func NewURLServiceImpl(ctx context.Context, collection *mongo.Collection) URLSer
 // GetURLFromShort implements URLService
 func (us *URLServiceImpl) GetURLFromShort(shortHash string) (*models.URLDBResponse, error) {
 	var urlDetails *models.URLDBResponse
-
+	
 	query := bson.M{"short_hash": shortHash}
 	err := us.collection.FindOne(us.ctx, query).Decode(&urlDetails)
 	if err != nil {
@@ -44,14 +47,28 @@ func (us *URLServiceImpl) GetURLFromShort(shortHash string) (*models.URLDBRespon
 		}
 		return nil, fmt.Errorf("failed to find id: %w", err)
 	}
-
+	
 	return urlDetails, nil
+}
+
+// UpdateURLVisited implements URLService
+func (us *URLServiceImpl) UpdateURLVisited(id primitive.ObjectID) error {
+	query := bson.M{"_id": id}
+	_, err := us.collection.UpdateOne(us.ctx, query, bson.D{{Key: "$inc", Value: bson.D{{Key: "visited", Value: 1}}}}, options.Update().SetUpsert(true))
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return err
+		}
+		return fmt.Errorf("failed to find id: %w", err)
+	}
+	return nil
 }
 
 // RegisterURL implements URLService
 func (us *URLServiceImpl) RegisterURL(urlRegisterRequest *models.RegisterURLInput) (*models.URLDBResponse, error) {
 	urlRegisterRequest.CreatedAt = time.Now()
 	urlRegisterRequest.UpdatedAt = urlRegisterRequest.CreatedAt
+	urlRegisterRequest.Visited = 0
 
 	if urlRegisterRequest.ShortHash != "" {
 		_, err := us.GetURLFromShort(urlRegisterRequest.ShortHash)
@@ -68,7 +85,7 @@ func (us *URLServiceImpl) RegisterURL(urlRegisterRequest *models.RegisterURLInpu
 			return nil, fmt.Errorf("failed to generate short url: %w", err)
 		}
 	}
-	
+
 	res, err := us.collection.InsertOne(us.ctx, &urlRegisterRequest)
 	if err != nil {
 		if innerErr, ok := err.(mongo.WriteException); ok && innerErr.WriteErrors[0].HasErrorCode(11000) {

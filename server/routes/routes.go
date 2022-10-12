@@ -22,6 +22,9 @@ func NewRoutes(authController *controllers.AuthController, userService services.
 }
 
 func (routes *Routes) InitRoutes(router *gin.Engine) {
+	urlShourtenedRouter := router.Group("/")
+	routes.urlRoutes.RedirectURLRoute(urlShourtenedRouter)
+
 	routerGroup := router.Group("/v1")
 
 	apiRoutes(routerGroup)

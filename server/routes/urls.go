@@ -30,3 +30,7 @@ func (ur *URLRoutes) URLRoutes(rg *gin.RouterGroup) {
 	router.Use(middleware.DeserializeUser(ur.userService, ur.authCfg))
 	router.POST("/register", ur.urlController.RegisterURL)
 }
+
+func (ur *URLRoutes) RedirectURLRoute(rg *gin.RouterGroup) {
+	rg.GET(":hash", ur.urlController.GetLongURL)
+}
