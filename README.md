@@ -8,7 +8,7 @@
 >> * User ID
 >> * URL hash
 >> * Real URL
->> * Is active
+>> * Experation
 >> * Last time visited
 >> * Number of visits
 
@@ -20,10 +20,10 @@
 - [ ] Users:
 > - [X] Add new user with PWD and JWT token   
 > - [X] Login     
-> - [ ] Add new URL   
 > - [ ] Get statistics
 
 - [ ] URLs:
+> - [X] Add new URL   
 > - [ ] GET /{hashed} redirect to actual  
 > - [ ] Update statistics     
 > - [ ] Timeout URLs
