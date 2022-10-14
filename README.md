@@ -3,8 +3,8 @@
 ## Todos:
 - [X] Create simple API server with GET /ping (will user for heath check)     
 - [X] Fix usage of context    
-- [ ] MongoDB:    
-> - [ ] URL collection:   
+- [X] MongoDB:    
+> - [X] URL collection:
 >> * User ID
 >> * URL hash
 >> * Real URL
@@ -17,13 +17,13 @@
 >> * Password
 >> * URLs data
 
-- [ ] Users:
+- [X] Users:
 > - [X] Add new user with PWD and JWT token   
 > - [X] Login     
-> - [ ] Get statistics
+> - [X] Get statistics
 
-- [ ] URLs:
+- [X] URLs:
 > - [X] Add new URL   
-> - [ ] GET /{hashed} redirect to actual  
-> - [ ] Update statistics     
-> - [ ] Timeout URLs
+> - [X] GET /{hashed} redirect to actual
+> - [X] Update statistics
+> - [X] Timeout URLs

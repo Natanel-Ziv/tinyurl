@@ -20,13 +20,13 @@ type URLService interface {
 	RegisterURL(*models.RegisterURLInput) (*models.URLDBResponse, error)
 	GetURLFromShort(string) (*models.URLDBResponse, error)
 	UpdateURLVisited(primitive.ObjectID) error
+	GetAllURLForUser(primitive.ObjectID) ([]*models.URLDBResponse, error)
 }
 
 type URLServiceImpl struct {
 	collection *mongo.Collection
 	ctx        context.Context
 }
-
 
 func NewURLServiceImpl(ctx context.Context, collection *mongo.Collection) URLService {
 	return &URLServiceImpl{
@@ -38,7 +38,7 @@ func NewURLServiceImpl(ctx context.Context, collection *mongo.Collection) URLSer
 // GetURLFromShort implements URLService
 func (us *URLServiceImpl) GetURLFromShort(shortHash string) (*models.URLDBResponse, error) {
 	var urlDetails *models.URLDBResponse
-	
+
 	query := bson.M{"short_hash": shortHash}
 	err := us.collection.FindOne(us.ctx, query).Decode(&urlDetails)
 	if err != nil {
@@ -47,7 +47,7 @@ func (us *URLServiceImpl) GetURLFromShort(shortHash string) (*models.URLDBRespon
 		}
 		return nil, fmt.Errorf("failed to find id: %w", err)
 	}
-	
+
 	return urlDetails, nil
 }
 
@@ -95,7 +95,11 @@ func (us *URLServiceImpl) RegisterURL(urlRegisterRequest *models.RegisterURLInpu
 	}
 
 	index := mongo.IndexModel{Keys: bson.M{"short_hash": 1}, Options: options.Index().SetUnique(true)}
-
+	_, err = us.collection.Indexes().CreateOne(us.ctx, index)
+	if err != nil {
+		return nil, fmt.Errorf("could not create index for short_url %w", err)
+	}
+	index = mongo.IndexModel{Keys: bson.M{"long_url": 1}, Options: options.Index().SetUnique(true)}
 	_, err = us.collection.Indexes().CreateOne(us.ctx, index)
 	if err != nil {
 		return nil, fmt.Errorf("could not create index for short_url %w", err)
@@ -110,4 +114,19 @@ func (us *URLServiceImpl) RegisterURL(urlRegisterRequest *models.RegisterURLInpu
 	}
 
 	return newShortURL, nil
+}
+
+func (us *URLServiceImpl) GetAllURLForUser(userId primitive.ObjectID) ([]*models.URLDBResponse, error) {
+	query := bson.M{"user": userId}
+
+	cur, err := us.collection.Find(us.ctx, query, &options.FindOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var allUserUrls []*models.URLDBResponse
+	if err = cur.All(us.ctx, &allUserUrls); err != nil {
+		return nil, err
+	}
+	return allUserUrls, nil
 }
