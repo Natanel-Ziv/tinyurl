@@ -57,10 +57,12 @@ func (uc *URLController) GetLongURL(ctx *gin.Context) {
 		})
 	}
 
-	ctx.Redirect(http.StatusTemporaryRedirect ,urlDetails.LongUrl)
+	ctx.Redirect(http.StatusTemporaryRedirect, urlDetails.LongUrl)
 }
 
 func (uc *URLController) RegisterURL(ctx *gin.Context) {
+	user := ctx.MustGet("currentUser").(*models.UserDBResponse)
+
 	var urlReq *models.RegisterURLInput
 
 	err := ctx.ShouldBindJSON(&urlReq)
@@ -75,6 +77,8 @@ func (uc *URLController) RegisterURL(ctx *gin.Context) {
 	if urlReq.ExpiresAt.IsZero() {
 		urlReq.ExpiresAt = time.Now().Add(DefaultExpTime)
 	}
+
+	urlReq.User = user.ID
 
 	newUrl, err := uc.urlService.RegisterURL(urlReq)
 	if err != nil {
@@ -102,6 +106,67 @@ func (uc *URLController) RegisterURL(ctx *gin.Context) {
 		"status": "success",
 		"data": gin.H{
 			"user": models.URLFilteredResponse(newUrl),
+		},
+	})
+}
+
+func (uc *URLController) GetUserStatistics(ctx *gin.Context) {
+	user := ctx.MustGet("currentUser").(*models.UserDBResponse)
+
+	allUserUrls, err := uc.urlService.GetAllURLForUser(user.ID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"status":  "error",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	if allUserUrls == nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"status":  "error",
+			"message": "no urls for user",
+		})
+		return
+	}
+
+	var resp []*models.URLResponse
+	for _, userUrl := range allUserUrls {
+		resp = append(resp, models.URLFilteredResponse(userUrl))
+	}
+	ctx.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"data": gin.H{
+			"urls": resp,
+		},
+	})
+}
+
+func (uc *URLController) GetStatisticsForURL(ctx *gin.Context) {
+	shortHash := ctx.Param("hash")
+	user := ctx.MustGet("currentUser").(*models.UserDBResponse)
+
+	urlDetails, err := uc.urlService.GetURLFromShort(shortHash)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"status":  "error",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	if urlDetails.User != user.ID {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"status":  "error",
+			"message": "this url does not belong to this user",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"data": gin.H{
+			"url": models.URLFilteredResponse(urlDetails),
 		},
 	})
 }
